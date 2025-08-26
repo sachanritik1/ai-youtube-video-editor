@@ -1,36 +1,101 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI YouTube Video Editor (Next.js 15 + TypeScript)
 
-## Getting Started
+Create short edits from YouTube videos by describing what you want. The server:
 
-First, run the development server:
+- Downloads the source video with yt-dlp
+- Transcribes audio with OpenAI Whisper
+- Finds relevant moments via GPT-4o-mini (JSON-constrained)
+- Clips and merges with ffmpeg
+- Serves the final MP4 from `public/outputs`
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+UI is built with Tailwind CSS and shadcn/ui components.
+
+## Prerequisites (macOS)
+
+- Node.js 18+
+- Homebrew (recommended)
+- yt-dlp and ffmpeg available on PATH
+
+```zsh
+brew install yt-dlp ffmpeg
+which yt-dlp
+which ffmpeg
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+If yt-dlp is installed in a non-standard location (e.g. Apple Silicon under `/opt/homebrew/bin`), you can set `YT_DLP_PATH` in `.env.local`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```zsh
+npm install
+echo 'OPENAI_API_KEY=YOUR_KEY' >> .env.local
+# optional overrides
+echo 'OPENAI_MODEL=gpt-4o-mini' >> .env.local
+echo 'YT_DLP_PATH=$(which yt-dlp)' >> .env.local  # only if PATH issues
 
-## Learn More
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Open <http://localhost:3000> and:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1) Paste a YouTube URL
+2) Describe the edit/query
+3) Submit and wait; download or preview the result when ready
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Outputs are written to `public/outputs` and served as `/outputs/<id>.mp4`.
 
-## Deploy on Vercel
+## API
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+POST `/api/process-video`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Request body:
+
+```json
+{ "youtubeUrl": "https://www.youtube.com/watch?v=...", "query": "your description" }
+```
+
+Response body (on success):
+
+```json
+{ "videoUrl": "/outputs/<uuid>.mp4" }
+```
+
+Errors return `{ "error": string }` with HTTP 400.
+
+## Environment variables
+
+- `OPENAI_API_KEY` (required)
+- `OPENAI_MODEL` (optional, defaults to `gpt-4o-mini`)
+- `YT_DLP_PATH` (optional; path to yt-dlp binary if not on PATH)
+
+## Troubleshooting
+
+- Error: `spawn yt-dlp ENOENT`
+  - Install yt-dlp: `brew install yt-dlp`
+  - Ensure it’s on PATH: `which yt-dlp`
+  - Or set `.env.local`: `YT_DLP_PATH=/opt/homebrew/bin/yt-dlp`
+
+- Error: `ffmpeg not found`
+  - Install ffmpeg: `brew install ffmpeg`
+  - Ensure it’s on PATH: `which ffmpeg`
+
+- Error: OpenAI key missing or `401 Unauthorized`
+  - Set `OPENAI_API_KEY` in `.env.local` and restart dev server
+
+## Notes on deployment
+
+This app requires system binaries (yt-dlp, ffmpeg). Typical serverless environments don’t provide these. Recommended options:
+
+- Deploy to a Node/VPS host where you can install binaries
+- Use Docker with ffmpeg/yt-dlp included in the image
+- For Vercel, use a self-hosted backend or supply static binaries (advanced)
+
+The API route uses `export const runtime = "nodejs"` and `force-dynamic`.
+
+## Tech Stack
+
+- Next.js 15 (App Router), React, TypeScript
+- Tailwind CSS, shadcn/ui
+- OpenAI SDK (Whisper + GPT-4o-mini)
+- zod for input/JSON validation
+- yt-dlp + ffmpeg via child_process
