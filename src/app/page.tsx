@@ -4,6 +4,18 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Spinner } from "@/components/ui/spinner";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { Film, Scissors, Download, Mic } from "lucide-react";
 
 type Status =
   | "idle"
@@ -19,16 +31,17 @@ export default function Home() {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
-
-  // status label map kept for potential future UI display
-  // const statusLabel = useMemo(() => ({
-  //   idle: "Idle",
-  //   downloading: "Downloading video…",
-  //   transcribing: "Transcribing audio…",
-  //   clipping: "Clipping & merging…",
-  //   done: "Done",
-  //   error: "Error",
-  // }[status]), [status]);
+  const stepOrder: Status[] = [
+    "downloading",
+    "transcribing",
+    "clipping",
+    "done",
+  ];
+  const stepIndex = (s: Status) => stepOrder.indexOf(s);
+  const progress = Math.max(
+    0,
+    (stepIndex(status) / (stepOrder.length - 1)) * 100
+  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -66,25 +79,39 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen w-full">
-      <div className="mx-auto max-w-5xl px-4 py-10">
-        <header className="mb-8">
-          <h1 className="text-3xl font-semibold tracking-tight">
-            AI YouTube Video Editor
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Paste a YouTube link and describe the edit you want. The server will
-            download, transcribe, find relevant moments, and return a merged
-            clip.
-          </p>
-        </header>
+    <main className="min-h-screen w-full bg-[radial-gradient(1200px_600px_at_50%_-150px,theme(colors.primary/15%),transparent)] dark:bg-[radial-gradient(1200px_600px_at_50%_-150px,theme(colors.primary/7%),transparent)]">
+      <div className="mx-auto max-w-6xl px-4 py-8">
+        {/* Header */}
+        <div className="mb-8 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="grid size-9 place-items-center rounded-lg bg-primary/10 text-primary">
+              <Film className="size-5" />
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold tracking-tight">
+                AI YouTube Video Editor
+              </h1>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Turn long videos into short, shareable edits.
+              </p>
+            </div>
+          </div>
+          <ThemeToggle />
+        </div>
 
+        {/* Content */}
         <div className="grid gap-6 lg:grid-cols-2">
-          {/* Form Card */}
-          <section className="rounded-xl border bg-card text-card-foreground shadow-sm">
-            <div className="p-6">
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div>
+          {/* Left: Form */}
+          <Card className="backdrop-blur supports-[backdrop-filter]:bg-card/80">
+            <CardHeader>
+              <CardTitle>Source & Query</CardTitle>
+              <CardDescription>
+                Paste a YouTube link and describe the edit you want.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-2">
                   <Label className="mb-1 block">YouTube URL</Label>
                   <Input
                     type="url"
@@ -92,12 +119,13 @@ export default function Home() {
                     placeholder="https://www.youtube.com/watch?v=..."
                     value={youtubeUrl}
                     onChange={(e) => setYoutubeUrl(e.target.value)}
+                    aria-invalid={!youtubeUrl ? true : undefined}
                   />
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Public videos work best.
                   </p>
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Label className="mb-1 block">Query</Label>
                   <Textarea
                     required
@@ -105,32 +133,34 @@ export default function Home() {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     rows={6}
+                    aria-invalid={!query ? true : undefined}
                   />
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Describe scenes you want. We’ll search the transcript for
                     them.
                   </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <Button
                     type="submit"
                     disabled={
                       !youtubeUrl ||
                       !query ||
-                      status === "downloading" ||
-                      status === "transcribing" ||
-                      status === "clipping"
+                      ["downloading", "transcribing", "clipping"].includes(
+                        status
+                      )
                     }
                   >
-                    {status === "downloading" ||
-                    status === "transcribing" ||
-                    status === "clipping" ? (
+                    {["downloading", "transcribing", "clipping"].includes(
+                      status
+                    ) ? (
                       <span className="inline-flex items-center gap-2">
-                        <span className="inline-block size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        Processing…
+                        <Spinner /> Processing…
                       </span>
                     ) : (
-                      "Create Edit"
+                      <>
+                        <Scissors className="size-4" /> Create Edit
+                      </>
                     )}
                   </Button>
                   <span className="text-xs text-muted-foreground">
@@ -138,76 +168,71 @@ export default function Home() {
                   </span>
                 </div>
               </form>
-            </div>
-          </section>
+            </CardContent>
+          </Card>
 
-          {/* Status + Result Card */}
-          <section className="rounded-xl border bg-card text-card-foreground shadow-sm">
-            <div className="p-6 space-y-4">
-              <div>
-                <div className="text-sm font-medium">Status</div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {(
-                    [
-                      "downloading",
-                      "transcribing",
-                      "clipping",
-                      "done",
-                    ] as Status[]
-                  ).map((step) => {
-                    const active = status === step;
-                    const completed =
-                      (step === "transcribing" &&
-                        (status === "clipping" || status === "done")) ||
-                      (step === "downloading" &&
-                        status !== "idle" &&
-                        status !== "error");
-                    const classes = active
-                      ? "border-primary bg-primary/10 text-primary"
-                      : completed
-                      ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                      : "border-muted bg-muted text-muted-foreground";
-                    const label = step.charAt(0).toUpperCase() + step.slice(1);
-                    return (
-                      <span
-                        key={step}
-                        className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs ${classes}`}
-                      >
-                        {active && (
-                          <span className="inline-block size-1.5 animate-pulse rounded-full bg-current" />
-                        )}
-                        {label}
-                      </span>
-                    );
-                  })}
-                  {status === "error" && (
-                    <span className="inline-flex items-center gap-2 rounded-full border border-destructive/40 bg-destructive/10 px-3 py-1 text-xs text-destructive">
-                      Error
-                    </span>
-                  )}
-                </div>
+          {/* Right: Progress & Result */}
+          <Card className="backdrop-blur supports-[backdrop-filter]:bg-card/80">
+            <CardHeader>
+              <CardTitle>Progress</CardTitle>
+              <CardDescription>
+                We’ll download, transcribe, pick moments, and merge your edit.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* Step badges */}
+              <div className="mb-4 flex flex-wrap gap-2">
+                {stepOrder.map((step) => {
+                  const active = status === step;
+                  const completed = stepIndex(step) < stepIndex(status);
+                  const color = active
+                    ? "primary"
+                    : completed
+                    ? "success"
+                    : "muted";
+                  const label = step.charAt(0).toUpperCase() + step.slice(1);
+                  const Icon =
+                    step === "downloading"
+                      ? Download
+                      : step === "transcribing"
+                      ? Mic
+                      : step === "clipping"
+                      ? Scissors
+                      : Film;
+                  return (
+                    <Badge key={step} color={color}>
+                      {active && (
+                        <span className="inline-block size-1.5 animate-pulse rounded-full bg-current" />
+                      )}
+                      <Icon className="size-3.5" /> {label}
+                    </Badge>
+                  );
+                })}
+                {status === "error" && <Badge color="destructive">Error</Badge>}
               </div>
 
+              <Progress value={progress} />
+
               {error && (
-                <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
                   {error}
                 </div>
               )}
 
-              <div>
-                <div className="text-sm font-medium">Result</div>
+              <div className="mt-6">
+                <div className="mb-2 text-sm font-medium">Result</div>
                 {!videoUrl ? (
-                  <p className="mt-2 text-sm text-muted-foreground">
+                  <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
                     Your edited video will appear here when it’s ready.
-                  </p>
+                  </div>
                 ) : (
-                  <div className="mt-3 space-y-3">
+                  <div className="space-y-3">
                     <a
-                      className="text-primary underline-offset-4 hover:underline"
+                      className="inline-flex items-center gap-2 text-primary underline-offset-4 hover:underline"
                       href={videoUrl ?? undefined}
                       download
                     >
-                      Download your edited video
+                      <Download className="size-4" /> Download your edited video
                     </a>
                     <div className="overflow-hidden rounded-lg border">
                       <video
@@ -219,8 +244,8 @@ export default function Home() {
                   </div>
                 )}
               </div>
-            </div>
-          </section>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </main>

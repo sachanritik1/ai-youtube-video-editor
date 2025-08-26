@@ -23,9 +23,25 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning className="dark">
+      <head>
+        {/* Inline theme script to avoid flash of incorrect theme */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+            try {
+        const stored = localStorage.getItem('theme');
+        let shouldDark = true; // default to dark
+        if (stored === 'light') shouldDark = false;
+        if (stored === 'dark') shouldDark = true;
+        document.documentElement.classList.toggle('dark', shouldDark);
+            } catch {}
+          `,
+          }}
+        />
+      </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background text-foreground`}
       >
         {children}
       </body>

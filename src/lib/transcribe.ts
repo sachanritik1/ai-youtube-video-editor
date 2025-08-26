@@ -47,7 +47,9 @@ export async function transcribeAudio(
 
   if (!segments || segments.length === 0) {
     // fallback: single chunk
-    try { await unlink(audioPath); } catch {}
+    try {
+      await unlink(audioPath);
+    } catch {}
     return [
       {
         start: 0,
@@ -56,7 +58,9 @@ export async function transcribeAudio(
       },
     ];
   }
-  try { await unlink(audioPath); } catch {}
+  try {
+    await unlink(audioPath);
+  } catch {}
   return segments.map((s) => ({ start: s.start, end: s.end, text: s.text }));
 }
 
@@ -111,7 +115,12 @@ async function withRetries<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
       return await fn();
     } catch (err: unknown) {
       lastErr = err;
-      const e = err as { status?: number; response?: { status?: number }; code?: string; message?: string };
+      const e = err as {
+        status?: number;
+        response?: { status?: number };
+        code?: string;
+        message?: string;
+      };
       const status = e?.status ?? e?.response?.status;
       const code = e?.code;
       const isTransient =
@@ -122,7 +131,8 @@ async function withRetries<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
       const message = String(e?.message || "");
       const maybeStreamIssue =
         message.includes("reading your request") || message.includes("body");
-      const shouldRetry = isTransient || (status === 400 && i === 0 && maybeStreamIssue);
+      const shouldRetry =
+        isTransient || (status === 400 && i === 0 && maybeStreamIssue);
       if (!shouldRetry || i === attempts - 1) break;
       await new Promise((r) => setTimeout(r, 800 * (i + 1)));
     }
