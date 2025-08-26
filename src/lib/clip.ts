@@ -36,18 +36,26 @@ export async function clipVideo(
     timestamps.length
   }:v=1:a=1[outv][outa]`;
 
+  const vPreset = process.env.FFMPEG_VPRESET || "veryfast"; // speed over size/quality
+  const crf = process.env.FFMPEG_CRF || "30"; // higher CRF = lower quality, faster/smaller
+  const scale = process.env.FFMPEG_SCALE || "-2:480"; // preserve aspect, target 480p
+
   const args = [
     "-y",
     "-i",
     inputPath,
     "-filter_complex",
-    filter,
+    `${filter};[outv]scale=${scale}[sv]`,
     "-map",
-    "[outv]",
+    "[sv]",
     "-map",
     "[outa]",
     "-c:v",
     "libx264",
+    "-preset",
+    vPreset,
+    "-crf",
+    crf,
     "-c:a",
     "aac",
     "-movflags",

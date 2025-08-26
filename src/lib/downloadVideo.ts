@@ -12,7 +12,8 @@ export async function downloadVideo(url: string): Promise<string> {
   await new Promise<void>((resolve, reject) => {
     const args = [
       "-f",
-      "bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4",
+      // Prefer 480p to reduce size/time; fallback to best <=480 or generic mp4
+      "bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/best[height<=480]/mp4",
       "--no-check-certificate",
       "--newline",
       "-o",
