@@ -25,7 +25,7 @@ export async function queryLLM(
     .map((t) => `[${t.start.toFixed(2)}-${t.end.toFixed(2)}] ${t.text}`)
     .join("\n");
 
-  const system = `You are a helpful video editor assistant. Given a transcript with timestamps and a user request, choose the most relevant short moments and return ONLY JSON: an array of objects with {start, end} in seconds. Keep total duration under ~90 seconds if possible.`;
+  const system = `You are a helpful video editor assistant. Given a transcript with timestamps and a user request, choose the most relevant short moments and return ONLY JSON: an array of objects with {start, end} in seconds. Keep total duration under ~90 seconds if not specified in user request.`;
   const user = `Transcript (partial):\n${transcriptPreview}\n\nUser request: ${query}\n\nReturn JSON only: [{"start": number, "end": number}, ...]`;
 
   const openai = getOpenAI();
